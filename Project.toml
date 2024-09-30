@@ -1,0 +1,10 @@
+name = "Oil.jl"
+uuid = "2e409b6a-8ef9-423d-8d7d-b001582fbca8"
+authors = ["Bruno Machado Pacheco <mpacheco.bruno@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+StringEncodings = "69024149-9ee7-55f6-a4c4-859efe599b68"
