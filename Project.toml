@@ -1,4 +1,4 @@
-name = "Oil.jl"
+name = "Oil"
 uuid = "2e409b6a-8ef9-423d-8d7d-b001582fbca8"
 authors = ["Bruno Machado Pacheco <mpacheco.bruno@gmail.com>"]
 version = "0.1.0"
