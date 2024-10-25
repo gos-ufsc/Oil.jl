@@ -7,6 +7,6 @@ include("pwl.jl")
 
 using .curves
 
-export Platform, Well, Riser, VLP, IPR
+export Platform, Well, Manifold, VLP, IPR
 
 end # module Oil

@@ -61,7 +61,7 @@ function PiecewiseLinearWell(well::Well, drop_infeasible_vlp = true)
     )
 end
 
-struct PiecewiseLinearRiser
+struct PiecewiseLinearManifold
     Q_liq::Vector{Float64}
     GOR::Vector{Float64}
     WCT::Vector{Float64}
@@ -69,46 +69,22 @@ struct PiecewiseLinearRiser
     ΔP::Dict{Tuple{Float64, Float64, Float64, Float64}, Float64}
 end
 
-function PiecewiseLinearRiser(riser::Riser, thp::Float64, use_gor_total::Bool = false)
-    if ~riser.choke_enabled
-        vlp = curves.interpolate_vlp_at_thp(riser.vlp, thp)
+function PiecewiseLinearManifold(manifold::Manifold, thp::Float64)
+    if ~manifold.choke_enabled
+        vlp = curves.interpolate_vlp_at_thp(manifold.vlp, thp)
 
         df = copy(vlp.df)
         df[!,"ΔP"] = df[!,"BHP"] .- thp
     else
-        vlp = riser.vlp
+        vlp = manifold.vlp
 
         df = copy(vlp.df)
         df[!,"ΔP"] = df[!,"BHP"] .- df[!,"THP"]
     end
 
-    if use_gor_total
-        df[!,"GOR"] = df[!,"GOR"] .+ df[!,"IGLR"] ./ (1 .- df[!,"WCT"])
-        vlp_pwl, vlp_breakpoints = make_piecewise_linear(df, ["LIQ", "GOR", "WCT"], "ΔP")
-
-        riser = PiecewiseLinearRiserGorTotal(
-            vlp_breakpoints["LIQ"],
-            vlp_breakpoints["GOR"],
-            vlp_breakpoints["WCT"],
-            vlp_pwl,
-        )
-        for q_liq_bp in riser.Q_liq
-            for gor_bp in riser.GOR
-                for wct_bp in riser.WCT
-                    if ~haskey(riser.ΔP, (q_liq_bp, gor_bp, wct_bp))
-                        riser.ΔP[(q_liq_bp, gor_bp, wct_bp)] = -1.0
-                    end
-                end
-            end
-        end
-    
-        return riser
-    end
-
-
     vlp_pwl, vlp_breakpoints = make_piecewise_linear(df, ["LIQ", "GOR", "WCT", "IGLR"], "ΔP")
 
-    riser = PiecewiseLinearRiser(
+    manifold = PiecewiseLinearManifold(
         vlp_breakpoints["LIQ"],
         vlp_breakpoints["GOR"],
         vlp_breakpoints["WCT"],
@@ -117,25 +93,17 @@ function PiecewiseLinearRiser(riser::Riser, thp::Float64, use_gor_total::Bool = 
     )
 
     # populate missing places with infeasible (-1)
-    for q_liq_bp in riser.Q_liq
-        for gor_bp in riser.GOR
-            for wct_bp in riser.WCT
-                for iglr_bp in riser.IGLR
-                    if ~haskey(riser.ΔP, (q_liq_bp, gor_bp, wct_bp, iglr_bp))
-                        riser.ΔP[(q_liq_bp, gor_bp, wct_bp, iglr_bp)] = -1.0
+    for q_liq_bp in manifold.Q_liq
+        for gor_bp in manifold.GOR
+            for wct_bp in manifold.WCT
+                for iglr_bp in manifold.IGLR
+                    if ~haskey(manifold.ΔP, (q_liq_bp, gor_bp, wct_bp, iglr_bp))
+                        manifold.ΔP[(q_liq_bp, gor_bp, wct_bp, iglr_bp)] = -1.0
                     end
                 end
             end
         end
     end
 
-    return riser
+    return manifold
 end
-
-struct PiecewiseLinearRiserGorTotal
-    Q_liq::Vector{Float64}
-    GOR::Vector{Float64}
-    WCT::Vector{Float64}
-    ΔP::Dict{Tuple{Float64, Float64, Float64}, Float64}
-end
-

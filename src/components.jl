@@ -19,42 +19,50 @@ Base.copy(well::Well) = Well(well.name, well.gor, well.wct, well.min_q_inj, well
                              copy(well.vlp), copy(well.ipr))
 Base.names(wells::Vector{W}) where W <: AbstractWell = [well.name for well in wells]
 
-struct Riser
+__manifold_id = 0
+struct Manifold
+    name::String
     vlp::curves.VLP
-    manifold_wells::Vector{Well}
+    wells::Vector{Well}
     choke_enabled::Bool
 end
-function Riser(vlp::curves.VLP, manifold_wells::Vector{Well}; choke_enabled::Bool = true)
-    return Riser(vlp, manifold_wells, choke_enabled)
+function Manifold(vlp::curves.VLP, wells::Vector{Well}; choke_enabled::Bool = true)
+    global __manifold_id
+    name = "M" * string(__manifold_id)
+    __manifold_id += 1
+    return Manifold(name, vlp, wells, choke_enabled)
+end
+function Manifold(name::String, vlp::curves.VLP, wells::Vector{Well}; choke_enabled::Bool = true)
+    return Manifold(name, vlp, wells, choke_enabled)
 end
 
-Base.copy(riser::Riser) = Riser(copy(riser.vlp), copy(riser.manifold_wells), riser.choke_enabled)
+Base.copy(manifold::Manifold) = Manifold(copy(manifold.name), copy(manifold.vlp), copy(manifold.wells), manifold.choke_enabled)
 
 struct Platform
     p_sep::Float64
     satellite_wells::Vector{Well}
-    riser::Union{Nothing, Riser}
+    manifolds::Vector{Manifold}
     q_inj_max::Union{Nothing,Float64}
     q_water_max::Union{Nothing,Float64}
     q_gas_max::Union{Nothing,Float64}
     q_liq_max::Union{Nothing,Float64}
 end
 function Platform(
-    p_sep::Float64;
-    satellite_wells::Vector{Well} = Vector{Well}(),
-    riser::Union{Nothing,Riser} = nothing,
-    q_inj_max::Union{Nothing,Float64} = nothing,
-    q_water_max::Union{Nothing,Float64} = nothing,
-    q_gas_max::Union{Nothing,Float64} = nothing,
-    q_liq_max::Union{Nothing,Float64} = nothing,
-)
-    return Platform(p_sep, satellite_wells, riser, q_inj_max, q_water_max, q_gas_max, q_liq_max)
+        p_sep::Float64;
+        satellite_wells::Vector{Well} = Vector{Well}(),
+        manifolds::Vector{Manifold} = Vector{Manifold}(),
+        q_inj_max::Union{Nothing,Float64} = nothing,
+        q_water_max::Union{Nothing,Float64} = nothing,
+        q_gas_max::Union{Nothing,Float64} = nothing,
+        q_liq_max::Union{Nothing,Float64} = nothing,
+    )
+    return Platform(p_sep, satellite_wells, manifolds, q_inj_max, q_water_max, q_gas_max, q_liq_max)
 end
 
 function all_wells(p::Platform)
-    if isnothing(p.riser)
-        return p.satellite_wells
-    else
-        return [p.satellite_wells; p.riser.manifold_wells]
+    wells = p.satellite_wells
+    for manifold in p.manifolds
+        wells = [wells ; manifold.wells]
     end
+    return wells
 end
